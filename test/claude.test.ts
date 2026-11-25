@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { claudeArgs, parseVerdict, startIdentityTokenFile } from "../src/claude.ts";
-import { untrustedEnv } from "../src/commands.ts";
+import { runAll, untrustedEnv } from "../src/commands.ts";
 import { DEFAULT_CONFIG, parseConfig } from "../src/config.ts";
 import { buildPrompt } from "../src/prompt.ts";
 
@@ -23,6 +23,22 @@ test("Claude may stage and run the repository's commands, but not commit, push o
 test("the commands of the pull request and Claude get no GitHub credentials", () => {
   const env = untrustedEnv({ CHUSAI_GITHUB_TOKEN: "t", GH_TOKEN: "t", ACTIONS_ID_TOKEN_REQUEST_TOKEN: "t", NODE_AUTH_TOKEN: "read-packages", PATH: "/bin" });
   assert.deepEqual(env, { NODE_AUTH_TOKEN: "read-packages", PATH: "/bin" });
+});
+
+test("a command that fails once and then passes counts as passed; one that keeps failing does not", async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "chusai-flaky-"));
+  try {
+    const options = { cwd: dir, env: process.env, timeoutMs: 10_000 };
+    const [flaky] = await runAll(["if [ -e seen ]; then exit 0; else touch seen; echo first; exit 1; fi"], options);
+    assert.equal(flaky?.ok, true);
+    assert.equal(flaky?.flaky, true);
+    assert.match(flaky?.tail ?? "", /first/);
+    const results = await runAll(["false", "true"], options);
+    assert.equal(results.length, 1);
+    assert.equal(results[0]?.ok, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("the identity token file holds a GitHub OIDC token for the Claude API audience", async () => {

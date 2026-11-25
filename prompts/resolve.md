@@ -14,6 +14,7 @@
   - 入れるコマンド: {{install}}
   - 検証のコマンド: {{verify}}
   - lockfile を作り直すコマンド: {{lockfile}}
+- シェルの変数への代入（`MB=$(...)`）とリダイレクト（`>`）は使えません。コマンドの出力はそのまま読み、ファイルは Edit か Write で書いてください。
 - **commit・push・`git merge --abort`・`git reset`・`git checkout` をしない。** マージの途中の状態のまま終えてください。Chusai が、あなたの判定と検証の結果を見て commit と push をします。
 - 直したファイルはすべて `git add` してください。新しく作ったファイルも同じです。ビルドやテストが作ったファイルは add しないでください。
 - このマージと関係の無い修正（リファクタ・整形・既存の不具合の修正）をしない。
@@ -22,7 +23,7 @@
 
 衝突は「どちらを採るか」ではなく「なぜ衝突したのか」から決めます。
 
-1. **衝突の性質を見極める。** `MB=$(git merge-base HEAD MERGE_HEAD)` を取り、`git log --oneline $MB..HEAD` と `git log --oneline $MB..MERGE_HEAD -- <衝突したパス>` を並べて読む。
+1. **衝突の性質を見極める。** `git merge-base HEAD MERGE_HEAD` で共通の祖先の SHA（以下 `$MB`。コマンドには SHA をそのまま書く）を出し、`git log --oneline $MB..HEAD` と `git log --oneline $MB..MERGE_HEAD -- <衝突したパス>` を並べて読む。
    - 双方が同じ機能の実装で、`{{defaultBranch}}` 側に `(#123)` 付きの PR がある → **同じ仕事の旧版と新版**。重複する部分は `{{defaultBranch}}` 側（レビューを通った後継）を正とし、PR 側はこのブランチにしか無い差分だけを残す。
    - 触っている対象が別で、たまたま同じ行に来た → 両方の和。
    - `{{defaultBranch}}` 側が同じ値を別の値に更新した（版数・モデル名など）→ PR 側がそれを導出や書き換えで含んでいるなら PR 側、そうでなければ `{{defaultBranch}}` 側の値。

@@ -34,6 +34,8 @@ export interface CommandResult {
   // The end of the combined output, which is where the error usually is.
   tail: string;
   durationMs: number;
+  // It failed once and passed when run again; the first failure's output is kept in `tail`.
+  flaky?: boolean;
 }
 
 const TAIL_LINES = 200;
@@ -57,11 +59,13 @@ export function runCommand(command: string, options: { cwd: string; env: Env; ti
       timedOut = true;
       child.kill("SIGKILL");
     }, options.timeoutMs);
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       clearTimeout(timer);
       const lines = output.trimEnd().split("\n");
       let tail = lines.slice(-TAIL_LINES).join("\n");
       if (timedOut) tail += `\n(${Math.round(options.timeoutMs / 60_000)} 分で止めました)`;
+      else if (signal) tail += `\n(シグナル ${signal} で止まりました)`;
+      else if (code !== 0) tail += `\n(終了コード ${code})`;
       resolve({ command, ok: code === 0 && !timedOut, tail, durationMs: Date.now() - started });
     });
     child.on("error", (error) => {
@@ -71,12 +75,19 @@ export function runCommand(command: string, options: { cwd: string; env: Env; ti
   });
 }
 
-// Runs the commands in order and stops at the first failure.
+// Runs the commands in order and stops at the first failure. A failing command is run once more: test suites that
+// fail now and then (as Gasho's does) would otherwise keep every resolution from being pushed, and send clean merges
+// to Claude as if they were broken.
 export async function runAll(commands: string[], options: { cwd: string; env: Env; timeoutMs: number; echo?: boolean }): Promise<CommandResult[]> {
   const results: CommandResult[] = [];
   for (const command of commands) {
     if (options.echo) console.log(`::group::${command}`);
-    const result = await runCommand(command, options);
+    let result = await runCommand(command, options);
+    if (!result.ok) {
+      if (options.echo) console.log(`::warning::${command} failed; running it once more`);
+      const again = await runCommand(command, options);
+      result = again.ok ? { ...again, flaky: true, tail: result.tail } : again;
+    }
     if (options.echo) console.log("::endgroup::");
     results.push(result);
     if (!result.ok) break;

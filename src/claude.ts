@@ -67,6 +67,7 @@ const READ_ONLY_BASH = [
   "git cat-file",
   "git grep",
   "git blame",
+  "echo",
   "ls",
   "cat",
   "head",

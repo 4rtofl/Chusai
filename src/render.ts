@@ -68,7 +68,9 @@ const short = (sha: string) => sha.slice(0, 7);
 const code = (text: string) => `\`${text.replaceAll("`", "'")}\``;
 
 function verifyLine(results: CommandResult[]): string {
-  return results.map((result) => `${code(result.command)} ${result.ok ? "通った" : "落ちた"}`).join("、");
+  return results
+    .map((result) => `${code(result.command)} ${result.ok ? (result.flaky ? "通った（1 回目は落ち、流し直して通った）" : "通った") : "落ちた"}`)
+    .join("、");
 }
 
 function cost(claude: ClaudeRun | null): string | null {
