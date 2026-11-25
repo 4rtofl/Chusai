@@ -25,6 +25,9 @@ export interface ClaudeRun {
   // Null when Claude ended without a verdict (an error, the budget, the timeout).
   verdict: Verdict | null;
   error: string | null;
+  // Without a verdict: whether the conflict is what stopped Claude (the budget or the time ran out on it), which a
+  // person has to look at, or the run itself broke (an API error, a crash), which the next run may not repeat.
+  stoppedBy: "limit" | "failure" | null;
   costUsd: number | null;
   turns: number | null;
   durationMs: number;
@@ -169,6 +172,7 @@ interface ResultMessage {
   total_cost_usd?: number;
   num_turns?: number;
   structured_output?: unknown;
+  permission_denials?: { tool_name?: string; tool_input?: Record<string, unknown> }[];
 }
 
 export function parseVerdict(value: unknown): Verdict | null {
@@ -238,7 +242,14 @@ export async function runClaude(params: {
         }
         const text = describe(message);
         if (text) console.log(text);
-        if (message.type === "result") result = message as unknown as ResultMessage;
+        if (message.type === "result") {
+          result = message as unknown as ResultMessage;
+          // What Claude tried and was refused, to tell a missing allow rule from a misbehaving run.
+          for (const denial of result.permission_denials ?? []) {
+            const input = denial.tool_input ?? {};
+            console.log(`[claude] denied ${denial.tool_name} ${String(input.command ?? input.file_path ?? "").slice(0, 160)}`);
+          }
+        }
       }
     });
     child.stderr.on("data", (chunk: Buffer) => {
@@ -256,15 +267,21 @@ export async function runClaude(params: {
       const final = result as ResultMessage | null;
       const verdict = parseVerdict(final?.structured_output);
       let reason = error;
+      let stoppedBy: ClaudeRun["stoppedBy"] = verdict ? null : "failure";
       if (!verdict && !reason) {
-        if (timedOut) reason = `${Math.round(params.timeoutMs / 60_000)} 分で止めました`;
-        else if (final?.subtype === "error_max_budget_usd") reason = `費用の上限（$${params.maxBudgetUsd}）に達しました`;
-        else if (final) reason = `Claude が判定を返しませんでした（${final.subtype}）`;
+        if (timedOut) {
+          reason = `${Math.round(params.timeoutMs / 60_000)} 分で解消し終わらなかったので止めました`;
+          stoppedBy = "limit";
+        } else if (final?.subtype === "error_max_budget_usd") {
+          reason = `解消し終わる前に費用の上限（$${params.maxBudgetUsd}）に達しました`;
+          stoppedBy = "limit";
+        } else if (final) reason = `Claude が判定を返しませんでした（${final.subtype}: ${(final.result ?? "").slice(0, 300)}）`;
         else reason = `Claude Code が結果を出さずに終わりました: ${stderr.trim().split("\n").slice(-5).join(" / ")}`;
       }
       resolve({
         verdict,
         error: verdict ? null : reason,
+        stoppedBy,
         costUsd: final?.total_cost_usd ?? null,
         turns: final?.num_turns ?? null,
         durationMs: Date.now() - started,

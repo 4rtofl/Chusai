@@ -145,7 +145,7 @@ export function fakeClaude(act: () => void, answer: Verdict | null = verdict()) 
   const run = async (prompt: string): Promise<ClaudeRun> => {
     calls.push(prompt);
     act();
-    return { verdict: answer, error: answer ? null : "Claude が判定を返しませんでした（error）", costUsd: 1.23, turns: 10, durationMs: 60_000 };
+    return { verdict: answer, error: answer ? null : "Claude が判定を返しませんでした（error）", stoppedBy: answer ? null : "failure", costUsd: 1.23, turns: 10, durationMs: 60_000 };
   };
   return { calls, run };
 }

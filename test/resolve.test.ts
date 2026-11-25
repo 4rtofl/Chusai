@@ -59,6 +59,21 @@ test("when Claude needs a person, nothing is pushed, and the same head is not gi
   assert.equal(claude.calls.length, 1);
 });
 
+test("when Claude Code itself fails, the run fails without asking anyone, so that the next run tries again", async () => {
+  fixture = conflicting();
+  const github = new FakeGitHub(fixture);
+  const head = fixture.remoteHead("feat");
+  const claude = fakeClaude(() => {}, null);
+
+  const first = await resolveIn(fixture, github, claude.run);
+  assert.equal(first.report?.outcome, "failed");
+  assert.equal(fixture.remoteHead("feat"), head);
+  assert.equal(github.comments.length, 0);
+
+  await resolveIn(fixture, github, claude.run);
+  assert.equal(claude.calls.length, 2);
+});
+
 test("conflict markers left behind are not pushed even when Claude says it resolved them", async () => {
   fixture = conflicting();
   const github = new FakeGitHub(fixture);

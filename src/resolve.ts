@@ -141,6 +141,11 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
     });
     report.claude = await params.claude(prompt, commands);
     const verdict = report.claude.verdict;
+    if (!verdict && report.claude.stoppedBy === "failure") {
+      report.outcome = "failed";
+      report.reason = report.claude.error;
+      return await finish();
+    }
     if (!verdict || verdict.outcome === "needs_human") {
       report.outcome = "needs-human";
       report.reason = report.claude.error ?? "Claude が、どちらの変更を残すかをコードとコミットから決められませんでした。";
@@ -167,7 +172,11 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
       const push = await git.push(branch);
       if (!push.pushed) {
         console.log(push.message);
-        report.outcome = "push-rejected";
+        // A race with someone's push is expected and settles itself; any other refusal (permissions, a protected
+        // branch) needs someone to look at the run.
+        const race = /non-fast-forward|fetch first|stale info/.test(push.message);
+        report.outcome = race ? "push-rejected" : "failed";
+        if (!race) report.reason = `push できませんでした: ${push.message.split("\n").slice(-3).join(" / ")}`;
         return await finish();
       }
       report.pushed = true;

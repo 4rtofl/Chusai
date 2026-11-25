@@ -16,7 +16,10 @@ export type Outcome =
   | "resolved"
   | "needs-human"
   // Someone pushed to the branch meanwhile; that push starts another run.
-  | "push-rejected";
+  | "push-rejected"
+  // Chusai's own run broke (Claude Code failed, the push was refused for another reason). Nothing is written to the
+  // pull request, the job fails, and the next run tries again.
+  | "failed";
 
 export interface Report {
   repository: string;
@@ -160,6 +163,7 @@ const OUTCOME_TEXT: Record<Outcome, string> = {
   resolved: "解消した",
   "needs-human": "人の判断が要る（push しない）",
   "push-rejected": "push の前に、ほかの push でブランチが進んだ（何もしない）",
+  failed: "Chusai の実行が失敗した（push もコメントもしない。次の実行でやり直す）",
 };
 
 const MAX_DIFF_CHARS = 60_000;

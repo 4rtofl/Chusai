@@ -126,7 +126,8 @@ export class Git {
   // Never forced: when someone pushed to the branch meanwhile, the remote refuses this push as not a fast-forward.
   async push(branch: string): Promise<{ pushed: boolean; message: string }> {
     const result = await this.raw(["push", "--porcelain", "origin", `HEAD:refs/heads/${branch}`], { auth: true, allowFailure: true });
-    return { pushed: result.code === 0, message: (result.stderr || result.stdout).trim() };
+    // --porcelain puts the reason of a refusal ("[rejected] (fetch first)") on stdout and git's hints on stderr.
+    return { pushed: result.code === 0, message: `${result.stdout}\n${result.stderr}`.trim() };
   }
 }
 

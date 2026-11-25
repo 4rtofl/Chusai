@@ -156,6 +156,10 @@ async function resolve(values: Record<string, string | boolean | undefined>, env
   }
   await writeSummary(env, summary);
   await writeOutput(env, "outcome", result.report.outcome);
+  if (result.report.outcome === "failed") {
+    console.error(`Chusai failed on #${number}: ${result.report.reason ?? ""}`);
+    process.exitCode = 1;
+  }
 }
 
 async function main(): Promise<void> {
