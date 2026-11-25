@@ -47,7 +47,8 @@ Org の Settings → Developer settings → GitHub Apps → New GitHub App で�
   | Checks: Read-only | PR のブランチの CI が通っているかを読む |
   | Workflows: Read and write | main が `.github/workflows/` を変えたあとの取り込みは、その変更を含む push になる。この権限が無いと拒否される |
 
-- 作ったあと、秘密鍵（private key）を生成して、導入するリポジトリにインストールする
+- 作ったあと、秘密鍵（private key）を生成して、導入するリポジトリにインストールする。秘密鍵は、App の設定の左のメニューの「Credentials」→「Key pairs」の「New key」で作る（General のページには無い）。ダウンロードされる `.pem` のファイルは二度とダウンロードできない
+- 「Client secrets」は使わない
 
 `GITHUB_TOKEN` で push すると、その push で始まる PR のワークフローが走りません。App のトークンで push するので、Chusai の push のあとも導入先の CI が普段どおり走ります。
 
