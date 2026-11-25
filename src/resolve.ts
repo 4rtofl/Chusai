@@ -6,6 +6,7 @@ import { runAll, untrustedEnv, type Env } from "./commands.ts";
 import type { Config } from "./config.ts";
 import type { Git } from "./git.ts";
 import type { CheckRun, GitHubApi, IssueComment } from "./github.ts";
+import { checkLines } from "./lines.ts";
 import { buildPrompt, type Task } from "./prompt.ts";
 import { commentBody, parseMarker, type CommentState, type Report } from "./render.ts";
 import { exclusion, type Trigger } from "./select.ts";
@@ -84,6 +85,7 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
     pushed: false,
     dryRun,
     diff: null,
+    lines: null,
     runUrl: params.runUrl,
   };
 
@@ -158,6 +160,7 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
       report.reason = problem;
       return await finish();
     }
+    if (conflicted.length) report.lines = await checkLines(git, conflicted);
     const message = `Merge branch '${defaultBranch}' into ${branch}\n\n${verdict.summary}`;
     report.commit = await git.commit(message, params.author);
     report.diff = (await git.raw(["show", "--cc", "--no-color", "--format=", "HEAD"])).stdout.trim() || null;

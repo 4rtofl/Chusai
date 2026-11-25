@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { CHECK_LINES } from "./claude.ts";
 import type { CommandResult } from "./commands.ts";
 import type { Config } from "./config.ts";
 
@@ -68,6 +69,7 @@ export async function buildPrompt(context: PromptContext): Promise<string> {
     install: list(context.config.install),
     verify: list(context.config.verify),
     lockfile: context.config.lockfile ? code(context.config.lockfile) : "なし",
+    checkLines: CHECK_LINES,
   };
   // One pass, so that text from the pull request (its title, test output) is never itself expanded.
   return template.replace(/\{\{(\w+)\}\}/g, (match, key: string) => values[key] ?? match);

@@ -1,6 +1,7 @@
 // What Chusai writes: one comment per pull request (rewritten on later runs) and the job summary.
 import type { ClaudeRun } from "./claude.ts";
 import type { CommandResult } from "./commands.ts";
+import { describeFindings, type FileFindings } from "./lines.ts";
 import { fenced } from "./prompt.ts";
 import type { Trigger } from "./select.ts";
 
@@ -45,6 +46,8 @@ export interface Report {
   dryRun: boolean;
   // The resolution as `git show --cc` prints it: the lines that differ from both parents.
   diff: string | null;
+  // The line check of the resolved conflicts (null when there was no conflict, or it did not get that far).
+  lines: FileFindings[] | null;
   runUrl: string | null;
 }
 
@@ -94,6 +97,20 @@ function fileTable(report: Report): string[] {
   return ["| ファイル | 解消 |", "|---|---|", ...files.map((file) => `| ${code(file.path)} | ${file.decision.replaceAll("|", "\\|").replaceAll("\n", " ")} |`), ""];
 }
 
+function lineCheck(report: Report): string[] {
+  if (!report.lines) return [];
+  const count = report.lines.reduce((sum, file) => sum + file.droppedFromBranch.length + file.droppedFromMain.length + file.duplicated.length, 0);
+  return [
+    "<details>",
+    `<summary>行の照合（両側が足した行が結果に残っているか${count ? `。${count} 行が当たった` : ""}）</summary>`,
+    "",
+    fenced(describeFindings(report.lines, report.defaultBranch)),
+    "",
+    "</details>",
+    "",
+  ];
+}
+
 function failedOutput(results: CommandResult[]): string[] {
   const failed = results.find((result) => !result.ok);
   if (!failed) return [];
@@ -118,6 +135,7 @@ export function commentBody(report: Report, previous: CommentState | null): stri
       ...fileTable(report),
       `検証: ${verifyLine(report.verify)}`,
       "",
+      ...lineCheck(report),
       "手元のブランチは、push の前に `git pull` で取り込んでください。",
       "",
       footer(report),
@@ -194,6 +212,7 @@ export function summaryMarkdown(report: Report): string {
     lines.push(...fileTable(report));
     if (verdict.questions.length) lines.push("**判断してほしいこと**", "", ...verdict.questions.map((question) => `- ${question}`), "");
   }
+  lines.push(...lineCheck(report));
   lines.push(...failedOutput(report.verify.length ? report.verify : report.drift && report.outcome !== "clean" ? [report.drift] : []));
   if (report.diff) {
     const diff = report.diff.length > MAX_DIFF_CHARS ? `${report.diff.slice(0, MAX_DIFF_CHARS)}\n…（${report.diff.length - MAX_DIFF_CHARS} 文字を省略）` : report.diff;

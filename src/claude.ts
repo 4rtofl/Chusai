@@ -6,6 +6,7 @@
 import { spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { processEnv, untrustedEnv, type Env } from "./commands.ts";
 
 export const CLAUDE_CODE_VERSION = "2.1.332";
@@ -85,8 +86,11 @@ const READ_ONLY_BASH = [
 
 // Claude may edit files, stage them and run the repository's own commands, nothing else: no commit, no push, no
 // network. Chusai commits and pushes itself after verifying the result again.
+// The line check Claude runs on its resolution (see src/lines.ts).
+export const CHECK_LINES = fileURLToPath(new URL("../scripts/check-lines.ts", import.meta.url));
+
 export function allowedTools(commands: string[]): string[] {
-  const bash = [...READ_ONLY_BASH, "git add", "git rm", ...commands].map((command) => `Bash(${command}:*)`);
+  const bash = [...READ_ONLY_BASH, "git add", "git rm", `node ${CHECK_LINES}`, ...commands].map((command) => `Bash(${command}:*)`);
   return ["Read", "Edit", "Write", "Glob", "Grep", "TodoWrite", ...bash];
 }
 

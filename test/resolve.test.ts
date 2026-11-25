@@ -42,6 +42,24 @@ test("a resolved conflict is pushed as a merge of the old head and main, and the
   assert.deepEqual(parseMarker(github.comments[0]?.body), { state: "resolved", head: pushed, main });
 });
 
+test("the line check reports a line main added that the resolution dropped, and a line it doubled", async () => {
+  fixture = new Fixture({ "a.txt": "first line\nsecond line\n" });
+  fixture.on("main", { "a.txt": "first line from main\nsecond line\nshared new line\n" }, "main");
+  fixture.on("feat", { "a.txt": "first line from feat\nsecond line\nshared new line\n" }, "feat");
+  const github = new FakeGitHub(fixture);
+  const claude = fakeClaude(() => {
+    writeFileSync(path.join(fixture.work, "a.txt"), "first line from feat\nsecond line\nshared new line\nshared new line\n");
+    git(fixture.work, "add", "a.txt");
+  });
+
+  const result = await resolveIn(fixture, github, claude.run, { dryRun: true });
+
+  const [finding] = result.report?.lines ?? [];
+  assert.deepEqual(finding?.droppedFromMain, ["first line from main"]);
+  assert.deepEqual(finding?.droppedFromBranch, []);
+  assert.deepEqual(finding?.duplicated, ["shared new line"]);
+});
+
 test("when Claude needs a person, nothing is pushed, and the same head is not given to Claude again", async () => {
   fixture = conflicting();
   const github = new FakeGitHub(fixture);
