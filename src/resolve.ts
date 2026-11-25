@@ -111,7 +111,7 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
   }
 
   try {
-    const { conflicted } = await git.merge(`refs/remotes/origin/${defaultBranch}`);
+    const { conflicted } = await git.merge(`refs/remotes/origin/${defaultBranch}`, params.author);
     report.conflicted = conflicted;
     let task: Task;
     if (conflicted.length > 0) {

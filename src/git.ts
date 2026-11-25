@@ -72,9 +72,13 @@ export class Git {
   }
 
   // Leaves the merge uncommitted either way, so that a clean merge can still be verified and fixed before committing.
-  async merge(ref: string): Promise<{ conflicted: string[] }> {
+  // git asks for an identity even with --no-commit, and a runner has none configured.
+  async merge(ref: string, author: { name: string; email: string }): Promise<{ conflicted: string[] }> {
     // zdiff3 puts the common ancestor's lines between the markers too, so that Claude sees all three versions in place.
-    const result = await this.raw(["-c", "merge.conflictStyle=zdiff3", "merge", "--no-ff", "--no-commit", ref], { allowFailure: true });
+    const result = await this.raw(
+      ["-c", `user.name=${author.name}`, "-c", `user.email=${author.email}`, "-c", "merge.conflictStyle=zdiff3", "merge", "--no-ff", "--no-commit", ref],
+      { allowFailure: true },
+    );
     const conflicted = await this.unmerged();
     if (result.code !== 0 && conflicted.length === 0) {
       throw new Error(`git merge ${ref} failed without conflicts: ${result.stderr.trim() || result.stdout.trim()}`);
