@@ -22,6 +22,9 @@ jobs:
       dry-run: true
       # registry-url: https://npm.pkg.github.com
       # registry-scope: "@4rtoflow"
+      # Through sigw instead of Workload Identity Federation: set this, put `sgk_….sgu_…` in the secret
+      # CHUSAI_ANTHROPIC_API_KEY, and leave the federation variables unset.
+      # anthropic-base-url: https://si.sigw.4rtofl.org/anthropic
       anthropic-federation-rule-id: ${{ vars.CHUSAI_ANTHROPIC_FEDERATION_RULE_ID }}
       anthropic-organization-id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
       anthropic-service-account-id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}

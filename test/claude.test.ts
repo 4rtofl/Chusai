@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { claudeArgs, parseVerdict, startIdentityTokenFile } from "../src/claude.ts";
-import { runAll, untrustedEnv } from "../src/commands.ts";
+import { claudeAuthEnv, runAll, untrustedEnv } from "../src/commands.ts";
 import { DEFAULT_CONFIG, parseConfig } from "../src/config.ts";
 import { buildPrompt } from "../src/prompt.ts";
 
@@ -20,9 +20,19 @@ test("Claude may stage and run the repository's commands, but not commit, push o
   assert.equal(args[args.indexOf("--permission-mode") + 1], "dontAsk");
 });
 
-test("the commands of the pull request and Claude get no GitHub credentials", () => {
-  const env = untrustedEnv({ CHUSAI_GITHUB_TOKEN: "t", GH_TOKEN: "t", ACTIONS_ID_TOKEN_REQUEST_TOKEN: "t", NODE_AUTH_TOKEN: "read-packages", PATH: "/bin" });
-  assert.deepEqual(env, { NODE_AUTH_TOKEN: "read-packages", PATH: "/bin" });
+test("the pull request's commands get no GitHub or Claude credentials; Claude Code gets only the Claude settings that are set", () => {
+  const given = {
+    CHUSAI_GITHUB_TOKEN: "t",
+    GH_TOKEN: "t",
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: "t",
+    ANTHROPIC_API_KEY: "sgk_a.sgu_b",
+    ANTHROPIC_BASE_URL: "https://si.sigw.4rtofl.org/anthropic",
+    ANTHROPIC_FEDERATION_RULE_ID: "",
+    NODE_AUTH_TOKEN: "read-packages",
+    PATH: "/bin",
+  };
+  assert.deepEqual(untrustedEnv(given), { NODE_AUTH_TOKEN: "read-packages", PATH: "/bin" });
+  assert.deepEqual(claudeAuthEnv(given), { ANTHROPIC_API_KEY: "sgk_a.sgu_b", ANTHROPIC_BASE_URL: "https://si.sigw.4rtofl.org/anthropic" });
 });
 
 test("a command that fails once and then passes counts as passed; one that keeps failing does not", async () => {

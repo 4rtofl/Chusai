@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { processEnv, untrustedEnv, type Env } from "./commands.ts";
+import { claudeAuthEnv, processEnv, untrustedEnv, type Env } from "./commands.ts";
 
 export const CLAUDE_CODE_VERSION = "2.1.332";
 const AUDIENCE = "https://api.anthropic.com";
@@ -221,6 +221,7 @@ export async function runClaude(params: {
   const started = Date.now();
   const env: Env = {
     ...untrustedEnv(params.env),
+    ...claudeAuthEnv(params.env),
     ...params.extraEnv,
     // Keeps Bash from moving the session out of the repository.
     CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1",

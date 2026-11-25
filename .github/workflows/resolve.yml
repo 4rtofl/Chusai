@@ -26,6 +26,11 @@ on:
       registry-scope:
         type: string
         default: ""
+      # A gateway in front of the Claude API, such as sigw (https://si.sigw.4rtofl.org/anthropic). Its key goes in the
+      # anthropic-api-key secret.
+      anthropic-base-url:
+        type: string
+        default: ""
       # Workload Identity Federation (no Claude API key). These IDs are not secret; pass them from Actions variables.
       anthropic-federation-rule-id:
         type: string
@@ -123,6 +128,7 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
           app-slug: ${{ steps.token.outputs.app-slug }}
           anthropic-api-key: ${{ secrets.anthropic-api-key }}
+          anthropic-base-url: ${{ inputs.anthropic-base-url }}
           anthropic-federation-rule-id: ${{ inputs.anthropic-federation-rule-id }}
           anthropic-organization-id: ${{ inputs.anthropic-organization-id }}
           anthropic-service-account-id: ${{ inputs.anthropic-service-account-id }}

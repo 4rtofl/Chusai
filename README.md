@@ -97,6 +97,16 @@ Workload Identity Federation（WIF）を使います。GitHub Actions が発行�
 
 WIF を使わないなら、`CHUSAI_ANTHROPIC_FEDERATION_RULE_ID` を登録せず、シークレット `CHUSAI_ANTHROPIC_API_KEY` に API キーを入れます。両方あるときは WIF を使います。
 
+**sigw を通す場合**
+
+[sigw](https://github.com/4rtofl/si-gateway) を通すと、誰のクレジットを何に使ったかが sigw に記録され、月の上限額も sigw キーで決められます。
+
+1. sigw の Web UI の「キー」で、Chusai 用の sigw キー（`sgk_…`）を発行する。Anthropic の API キーを入れ、使えるモデルに `claude-opus-5-5` を含め、月の上限額を決める
+2. 「設定」で個人トークン（`sgu_…`）を発行する。sigw は、この個人トークンの持ち主が使ったものとして記録する
+3. シークレット `CHUSAI_ANTHROPIC_API_KEY` に `sgk_….sgu_…`（2 つを `.` でつないだ文字列）を入れ、呼び出し用のワークフローで `anthropic-base-url: https://si.sigw.4rtofl.org/anthropic` を渡す。WIF の Variables（`CHUSAI_ANTHROPIC_FEDERATION_RULE_ID`）は登録しない
+
+API キーは Claude Code にだけ渡し、Chusai が流す入れるコマンドと検証のコマンドには渡しません。ただし、Claude Code が流すコマンド（PR のテストなど）からは読めます。fork からの PR は扱わないので、読めるのはリポジトリに書き込める人のコードだけです。
+
 ### 4. 導入するリポジトリに置くもの
 
 - `.github/workflows/chusai.yml`：[examples/chusai.yml](examples/chusai.yml) をコピーします。最初は `dry-run: true` のままにし、job summary で何をするはずだったかを読んでから外します。

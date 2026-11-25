@@ -16,6 +16,9 @@ inputs:
   anthropic-api-key:
     description: Claude API key. Not needed with Workload Identity Federation.
     default: ""
+  anthropic-base-url:
+    description: "Where Claude Code sends its API requests, for a gateway such as sigw (https://si.sigw.4rtofl.org/anthropic). Empty means the Claude API itself."
+    default: ""
   anthropic-federation-rule-id:
     description: "Workload Identity Federation: the federation rule (fdrl_...). Takes precedence over the API key; the job needs `id-token: write`."
     default: ""
@@ -77,6 +80,7 @@ runs:
         CHUSAI_DRY_RUN: ${{ inputs.dry-run }}
         CHUSAI_CLAUDE_CODE_VERSION: ${{ inputs.claude-code-version }}
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
         ANTHROPIC_FEDERATION_RULE_ID: ${{ inputs.anthropic-federation-rule-id }}
         ANTHROPIC_ORGANIZATION_ID: ${{ inputs.anthropic-organization-id }}
         ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ inputs.anthropic-service-account-id }}

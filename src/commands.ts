@@ -17,10 +17,28 @@ const SECRET_KEYS = [
   "ACTIONS_CACHE_URL",
 ];
 
+// How Claude Code reaches the Claude API: an API key (for sigw, `sgk_….sgu_…`), a base URL (sigw's), or Workload
+// Identity Federation. Only Claude Code gets them, never the install and verify commands.
+export const CLAUDE_AUTH_KEYS = [
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_FEDERATION_RULE_ID",
+  "ANTHROPIC_ORGANIZATION_ID",
+  "ANTHROPIC_SERVICE_ACCOUNT_ID",
+  "ANTHROPIC_WORKSPACE_ID",
+];
+
 export function untrustedEnv(env: Env): Env {
   const copy: Env = { ...env };
-  for (const key of SECRET_KEYS) delete copy[key];
+  for (const key of [...SECRET_KEYS, ...CLAUDE_AUTH_KEYS]) delete copy[key];
   return copy;
+}
+
+// The Claude API settings that are set. action.yml passes every input, so an unused one arrives as an empty string,
+// which Claude Code would take as set.
+export function claudeAuthEnv(env: Env): Env {
+  return Object.fromEntries(CLAUDE_AUTH_KEYS.filter((key) => env[key]).map((key) => [key, env[key]]));
 }
 
 // Child processes take only set values: an undefined one would reach them as the string "undefined".
