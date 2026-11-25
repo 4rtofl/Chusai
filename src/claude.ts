@@ -113,9 +113,12 @@ export function claudeArgs(params: { model: string; maxBudgetUsd: number; comman
     "Bash(git rebase:*)",
     "Bash(gh:*)",
     "Bash(curl:*)",
-    // The repository's own settings and MCP servers are for its developers' machines.
+    // The repository's settings, hooks and MCP servers are for its developers' machines (and locally, the user's own
+    // settings would bring their hooks into the run).
     "--setting-sources",
-    "user",
+    "",
+    "--settings",
+    JSON.stringify({ disableAllHooks: true }),
     "--strict-mcp-config",
     "--no-session-persistence",
   ];

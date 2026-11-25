@@ -1,0 +1,83 @@
+name: Chusai
+description: Brings the default branch into pull request branches, has Claude Code resolve what breaks, verifies the merge and pushes it.
+inputs:
+  command:
+    description: "`select` lists the pull requests to look at (output `targets`); `resolve` brings the default branch into one of them."
+    required: true
+  pr:
+    description: The pull request number (resolve).
+    default: ""
+  github-token:
+    description: The GitHub App's installation token. It reads the pull requests, pushes the merge and writes the comment.
+    required: true
+  app-slug:
+    description: The App's slug, for the author of the merge commits (`<slug>[bot]`).
+    default: chusai
+  anthropic-api-key:
+    description: Claude API key. Not needed with Workload Identity Federation.
+    default: ""
+  anthropic-federation-rule-id:
+    description: "Workload Identity Federation: the federation rule (fdrl_...). Takes precedence over the API key; the job needs `id-token: write`."
+    default: ""
+  anthropic-organization-id:
+    description: "Workload Identity Federation: the Claude Console organization ID."
+    default: ""
+  anthropic-service-account-id:
+    description: "Workload Identity Federation: the rule's service account (svac_...), optional."
+    default: ""
+  anthropic-workspace-id:
+    description: "Workload Identity Federation: the workspace (wrkspc_...), needed when the rule covers more than one."
+    default: ""
+  config:
+    description: Path of the settings file in the repository, read from its default branch.
+    default: .github/chusai.json
+  model:
+    description: Claude model.
+    default: claude-opus-5-5
+  dry-run:
+    description: "true: write what would be pushed and commented to the job summary only."
+    default: "false"
+  claude-code-version:
+    description: The Claude Code version to install. Empty means the version Chusai is tested with.
+    default: ""
+  registry-url:
+    description: An npm registry for the repository's packages (for example https://npm.pkg.github.com), passed to actions/setup-node.
+    default: ""
+  registry-scope:
+    description: The package scope of that registry, passed to actions/setup-node.
+    default: ""
+outputs:
+  targets:
+    description: "select: the pull request numbers as a JSON array."
+    value: ${{ steps.run.outputs.targets }}
+  outcome:
+    description: "resolve: what happened (resolved, needs-human, clean, up-to-date, ...)."
+    value: ${{ steps.run.outputs.outcome }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.registry-scope }}
+    - id: run
+      shell: bash
+      run: |
+        args=("$CHUSAI_COMMAND")
+        if [ -n "$CHUSAI_PR" ]; then args+=(--pr "$CHUSAI_PR"); fi
+        node "$GITHUB_ACTION_PATH/src/main.ts" "${args[@]}"
+      env:
+        CHUSAI_COMMAND: ${{ inputs.command }}
+        CHUSAI_PR: ${{ inputs.pr }}
+        CHUSAI_GITHUB_TOKEN: ${{ inputs.github-token }}
+        CHUSAI_APP_SLUG: ${{ inputs.app-slug }}
+        CHUSAI_CONFIG: ${{ inputs.config }}
+        CHUSAI_MODEL: ${{ inputs.model }}
+        CHUSAI_DRY_RUN: ${{ inputs.dry-run }}
+        CHUSAI_CLAUDE_CODE_VERSION: ${{ inputs.claude-code-version }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        ANTHROPIC_FEDERATION_RULE_ID: ${{ inputs.anthropic-federation-rule-id }}
+        ANTHROPIC_ORGANIZATION_ID: ${{ inputs.anthropic-organization-id }}
+        ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ inputs.anthropic-service-account-id }}
+        ANTHROPIC_WORKSPACE_ID: ${{ inputs.anthropic-workspace-id }}
