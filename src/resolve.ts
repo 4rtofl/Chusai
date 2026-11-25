@@ -79,6 +79,7 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
     reason: null,
     conflicted: [],
     drift: null,
+    mergeCheck: [],
     claude: null,
     verify: [],
     commit: null,
@@ -120,6 +121,7 @@ export async function resolvePull(params: ResolveParams): Promise<ResolveResult>
       // clean merge breaks. Only a push to the default branch leaves open pull requests unchecked.
       if (trigger === "pull_request") return await finish();
       const results = await runAll([...config.install, ...config.verify], { cwd: git.cwd, env, timeoutMs, echo });
+      report.mergeCheck = results;
       const failure = results.find((result) => !result.ok);
       if (!failure) return await finish();
       report.drift = failure;

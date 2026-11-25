@@ -38,6 +38,8 @@ export interface Report {
   conflicted: string[];
   // The verify command that failed on the clean merge (a push to the default branch only).
   drift: CommandResult | null;
+  // The install and verify commands run on the clean merge (a push to the default branch only).
+  mergeCheck: CommandResult[];
   claude: ClaudeRun | null;
   // The verify commands run on the commit that would be pushed.
   verify: CommandResult[];
@@ -201,7 +203,7 @@ export function summaryMarkdown(report: Report): string {
   ];
   if (report.reason) lines.push(`- 理由: ${report.reason}`);
   if (report.conflicted.length) lines.push(`- 衝突したファイル: ${report.conflicted.map(code).join("、")}`);
-  if (report.drift) lines.push(`- マージした結果で落ちた検証: ${code(report.drift.command)}`);
+  if (report.mergeCheck.length) lines.push(`- ${report.defaultBranch} と合わせた検証: ${verifyLine(report.mergeCheck)}`);
   if (report.verify.length) lines.push(`- 解消後の検証: ${verifyLine(report.verify)}`);
   const claudeLine = cost(report.claude);
   if (claudeLine) lines.push(`- ${claudeLine}`);
